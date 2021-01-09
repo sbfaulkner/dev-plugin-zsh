@@ -37,13 +37,14 @@ function _dev {
 function _dev::help {
   local commands=${(pj:, :)${(ok)_dev_commands}}
 
-  cat <<EOF
+  cat >&2 <<EOF
 Usage: dev <command> [options]
 
 Available commands:
 
   help                Print this help message
   clone <repo>        Clone a repo from GitHub
+  open <target>       Open a target URL in your browser
 
 Project-specific commands:
 
@@ -53,10 +54,10 @@ EOF
 
 # clone a repo from github
 function _dev::clone {
-  if [[ -z "$1" ]]; then
+  (( $# > 0 )) || {
     echo >&2 "Usage: dev clone <repo>"
     return 1
-  fi
+  }
 
   local login=$(_dev_gh_auth)
   local repo=$(basename $1)
@@ -70,6 +71,36 @@ function _dev::clone {
   fi
 
   cd $dir
+}
+
+# open a url
+function _dev::open {
+  (( $# > 0 )) || {
+    cat >&2 <<EOF
+Usage: dev open <target>
+
+Targets:
+  gh    Open the repo on GitHub
+  pr    Open a PR on GitHub
+EOF
+    return 1
+  }
+
+  local target="$1"
+  shift
+
+  case "$target" in
+    gh)
+      gh repo view --web
+      ;;
+    pr)
+      gh pr create --web
+      ;;
+    *)
+      echo >&2 "Unable to open unknown target: $target"
+      return 1
+      ;;
+  esac
 }
 
 #
