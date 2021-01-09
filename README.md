@@ -5,6 +5,14 @@ This plugin provides a lightweight version of Shopify's internal dev tool.
 ## Commands
 
 * `clone` <repo>    - Clone a repo from GitHub.
+* `open` <target>   - Open a target in your browser.
+
+### Open
+
+Targets for the open command include:
+
+* `gh`      - Open the repo on GitHub.
+* `pr`      - Open the PR on GitHub.
 
 ## Custom Commands
 
