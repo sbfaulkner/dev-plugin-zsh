@@ -140,17 +140,21 @@ function _dev_gh_auth {
 # load current dev.yml
 function _dev_load {
   _dev_root=$(_dev_path) && {
-    echo "💻 ${_dev_root/$HOME/~}/dev.yml"
+    typeset -g _dev_name
+    typeset -Ag _dev_commands
     eval $(_dev_loader)
+    echo "💻 $_dev_name"
   }
   _dev_loaded_at=$(_dev_yml_mtime)
 }
 
 function _dev_loader {
-  ruby -ryaml -rshellwords - $_dev_root/dev.yml <<'LOADER'
-yaml = YAML.load_file(ARGV.first) || {}
+  ruby -ryaml -rshellwords - $_dev_root <<'LOADER'
+root = ARGV.first
+yaml = YAML.load_file(File.join(root, "/dev.yml")) || {}
+puts "_dev_name=#{Shellwords.escape(yaml.fetch("name", File.dirname(root)))}"
 commands = yaml.fetch("commands", {})
-puts "typeset -Ag _dev_commands=("
+puts "_dev_commands=("
 commands.each do |name, script|
   script = script["run"] if script.is_a?(Hash)
   script = %(#{script} "$@") if script.lines.size == 1 && !script.include?('$@') && !script.include?('$*')
