@@ -35,8 +35,6 @@ function _dev {
 
 # usage
 function _dev::help {
-  local commands=${(pj:, :)${(ok)_dev_commands}}
-
   cat >&2 <<EOF
 Usage: dev <command> [options]
 
@@ -45,6 +43,12 @@ Available commands:
   help                Print this help message
   clone <repo>        Clone a repo from GitHub
   open <target>       Open a target URL in your browser
+EOF
+
+  local commands=${(pj:, :)${(ok)_dev_commands}}
+  (( $#commands )) || return 0
+
+  cat >&2 <<EOF
 
 Project-specific commands:
 
@@ -144,8 +148,10 @@ function _dev_load {
 
 function _dev_loader {
   ruby -ryaml -rshellwords - $_dev_root/dev.yml <<'LOADER'
+yaml = YAML.load_file(ARGV.first) || {}
+commands = yaml.fetch("commands", {})
 puts "typeset -Ag _dev_commands=("
-Hash(YAML.load_file(ARGV.first)["commands"]).each do |name, script|
+commands.each do |name, script|
   script = script["run"] if script.is_a?(Hash)
   script = %(#{script} "$@") if script.lines.size == 1 && !script.include?('$@') && !script.include?('$*')
 
