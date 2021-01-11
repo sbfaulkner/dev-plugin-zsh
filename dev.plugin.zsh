@@ -180,11 +180,11 @@ function _dev::up::ruby {
   case "${version}" in
   stable)
     ruby-install ruby --no-reinstall
-    chruby | tail -n 1 | sed -e 's/^.*ruby-//' >${_dev_root}/.ruby-version
+    _dev_version set ruby $(chruby | tail -n 1 | sed -e 's/^.*ruby-//')
     ;;
   *)
     ruby-install ruby --no-reinstall ${version}
-    echo ${version} >${_dev_root}/.ruby-version
+    _dev_version set ruby ${version}
     ;;
   esac
 }
@@ -210,6 +210,7 @@ function _dev::up::go {
 
   [[ -d "$goroot" && -n "$(ls -A "$goroot")" ]] && {
     print -P "%B%F{green}>>>%f Go is already installed into ${HOME}/.golangs/go$version%b"
+    _dev_version set go ${version}
     return 0
   }
 
@@ -224,6 +225,7 @@ function _dev::up::go {
 
   mkdir -p "$goroot" || return
   tar zxf "$tarball_path" --directory "$goroot" --strip-components=1
+  _dev_version set go ${version}
 }
 
 #
@@ -231,10 +233,20 @@ function _dev::up::go {
 #
 
 autoload -U add-zsh-hook
+
+# update dev and reload dev.yml
 add-zsh-hook chpwd _dev_chpwd
 function _dev_chpwd() {
   _dev_update
   _dev_reload
+}
+
+# detect ruby and go versions
+add-zsh-hook precmd detect_versions
+function detect_versions {
+  local version
+  [[ -n ${version::=$(_dev_version get ruby)} ]] && chruby "$version"
+  [[ -n ${version::=$(_dev_version get go)} ]] && chgo "$version"
 }
 
 #
@@ -374,6 +386,27 @@ function _dev_up_value_get {
   done
 
   return 1
+}
+
+# get or set version
+function _dev_version {
+  local action=$1
+  local versiondir="${_dev_root}/.dev/$2"
+  local versionfile="${versiondir}/version"
+
+  case $action in
+    get)
+      [[ -f "$versionfile" ]] && cat "$versionfile"
+      ;;
+    set)
+      mkdir -p "$versiondir"
+      echo "$3" >"$versionfile"
+      ;;
+    *)
+      _dev_print_error "Unknown action: $action"
+      return 2
+      ;;
+  esac
 }
 
 # reload dev if changed
