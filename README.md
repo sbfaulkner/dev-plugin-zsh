@@ -6,6 +6,7 @@ This plugin provides a lightweight version of Shopify's internal dev tool.
 
 * `clone` <repo>    - Clone a repo from GitHub.
 * `open` <target>   - Open a target in your browser.
+* `up`              - Install and start any dependencies.
 
 ### Open
 
@@ -13,6 +14,27 @@ Targets for the open command include:
 
 * `gh`      - Open the repo on GitHub.
 * `pr`      - Open the PR on GitHub.
+
+### Up
+
+Dependencies to be installed or started are identified in a `dev.yml` file under the top-level `up` key.
+
+For example:
+
+```
+up:
+  - homebrew:
+    - mysql-client
+  - ruby: 2.7.1
+  - bundler
+```
+
+Supported dependencies include:
+
+* `bundler`     - Ruby gems will be installed via [Bundler](https://bundler.io).
+* `go`          - The version of [Go](https://golang.org) to be installed via [TBD]().
+* `homebrew`    - A list of packages to be installed via [Homebrew](https://brew.sh).
+* `ruby`        - The version of [Ruby](http://www.ruby-lang.org) to be installed and used via [ruby-install](https://github.com/postmodern/ruby-install#readme) and [chruby](https://github.com/postmodern/chruby/#readme).
 
 ## Custom Commands
 
@@ -71,4 +93,8 @@ When running the script any additional parameters passeed on the command line wi
 
 ## Installation
 
-The [GitHub CLI](https://cli.github.com) needs to be installed in order to support GitHub integration (eg. `dev clone …`). On OS X with Homebrew, this can be done with `brew install gh`.
+The [GitHub CLI](https://cli.github.com) needs to be installed in order to support integration with GitHub.
+
+[ruby-install](https://github.com/postmodern/ruby-install#readme) is required to install [Ruby](http://www.ruby-lang.org).
+
+[chruby](https://github.com/postmodern/chruby/#readme) is needed in order to select the current [Ruby](http://www.ruby-lang.org) version.
