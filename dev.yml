@@ -1,0 +1,12 @@
+name: dev.plugin.zsh
+
+up:
+  - homebrew:
+    - shellcheck
+    - ruby-install
+    - chruby
+  - ruby: 2.7.2
+  - go: 1.14
+
+commands:
+  lint: shellcheck -o all -s bash *.zsh
