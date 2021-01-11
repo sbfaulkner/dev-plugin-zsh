@@ -179,14 +179,16 @@ function _dev::up::ruby {
 
   case "${version}" in
   stable)
-    ruby-install ruby --no-reinstall
-    _dev_version set ruby $(chruby | tail -n 1 | sed -e 's/^.*ruby-//')
+    ruby-install ruby --no-reinstall || return
+    version=$(chruby | tail -n 1 | sed -e 's/^.*ruby-//')
     ;;
   *)
-    ruby-install ruby --no-reinstall ${version}
-    _dev_version set ruby ${version}
+    ruby-install ruby --no-reinstall ${version} || return
     ;;
   esac
+
+  source "${functions_source[chruby]}"
+  _dev_version set ruby ${version}
 }
 
 # install go version
@@ -224,7 +226,8 @@ function _dev::up::go {
   }
 
   mkdir -p "$goroot" || return
-  tar zxf "$tarball_path" --directory "$goroot" --strip-components=1
+  tar zxf "$tarball_path" --directory "$goroot" --strip-components=1 || return
+  source "${functions_source[chgo]}"
   _dev_version set go ${version}
 }
 
@@ -352,17 +355,17 @@ function _dev_path {
 
 # print message
 function _dev_print {
-  print -P "%B%F{white}$@%f%b"
+  print -P "%B$@%b"
 }
 
 # print error
 function _dev_print_error {
-  print -P "⛔️ %F{red}Error:%f $@" >&2
+  print -P "%F{red}Error:%f $@" >&2
 }
 
 # print warning
 function _dev_print_warning {
-  print -P "⚠️  %F{yellow}Warning:%f ${@}" >&2
+  print -P "%F{yellow}Warning:%f ${@}" >&2
 }
 
 # reload dev.yml if changed
