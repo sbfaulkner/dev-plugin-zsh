@@ -1,6 +1,6 @@
 # dev plugin
 
-This plugin provides a lightweight version of Shopify's internal dev tool.
+This plugin provides a lightweight version of [Shopify's internal dev tool](https://devproductivity.io/dev-shopifys-all-purpose-development-tool/index.html).
 
 ## Commands
 
