@@ -288,23 +288,44 @@ function _dev_loader {
   ruby -ryaml -rshellwords -rjson - "${_dev_root}" <<'LOADER'
 root = ARGV.first
 yaml = YAML.load_file(File.join(root, "/dev.yml")) || {}
-puts "_dev_name=#{Shellwords.escape(yaml.fetch("name", File.dirname(root)))}"
+name = yaml.fetch("name", File.dirname(root))
+up = yaml.fetch("up", [])
+commands = yaml.fetch("commands", {})
+puts "_dev_name=#{Shellwords.escape(name)}"
 puts "_dev_up=("
-yaml.fetch("up", []).each do |dependency|
-  if dependency.is_a?(Hash)
+up.each do |dependency|
+  case dependency
+  when Hash
     puts %(  #{dependency.keys.first})
+  when Array
+    puts %(  #{dependency.first})
   else
     puts %(  #{dependency})
   end
 end
 puts ")"
 puts "_dev_dependencies=("
-yaml.fetch("up", []).each do |dependency|
-  if dependency.is_a?(Hash)
+up.each do |dependency|
+  case dependency
+  when Hash
     key, value = dependency.first
     assignment = case value
     when Hash
-      hash = value.map { |k,v| "[#{k}]=#{Shellwords.escape(v)}" }.join(' ') 
+      hash = value.map { |k,v| "[#{k}]=#{Shellwords.escape(v)}" }.join(' ')
+      "unset _dev_up_value; local -A _dev_up_value=( #{hash} )"
+    when Array
+      array = value.map { |v| Shellwords.escape(v) }.join(' ')
+      "unset _dev_up_value; local -a _dev_up_value=( #{array} )"
+    else
+      string = Shellwords.escape(value.to_s)
+      "unset _dev_up_value; local _dev_up_value=#{string}"
+    end
+    puts %(  [#{key}]=#{Shellwords.escape(assignment)})
+  when Array
+    key, value = dependency
+    assignment = case value
+    when Hash
+      hash = value.map { |k,v| "[#{k}]=#{Shellwords.escape(v)}" }.join(' ')
       "unset _dev_up_value; local -A _dev_up_value=( #{hash} )"
     when Array
       array = value.map { |v| Shellwords.escape(v) }.join(' ')
@@ -320,10 +341,10 @@ yaml.fetch("up", []).each do |dependency|
 end
 puts ")"
 puts "_dev_commands=("
-yaml.fetch("commands", {}).each do |name, script|
+commands.each do |name, script|
   script = script["run"] if script.is_a?(Hash)
   if script.nil?
-    warn "missing command: #{name}" 
+    warn "missing command: #{name}"
     next
   end
   script = %(#{script} "$@") if script.lines.size == 1 && !script.include?('$@') && !script.include?('$*')
