@@ -98,3 +98,5 @@ The [GitHub CLI](https://cli.github.com) needs to be installed in order to suppo
 [ruby-install](https://github.com/postmodern/ruby-install#readme) is required to install [Ruby](http://www.ruby-lang.org).
 
 [chruby](https://github.com/postmodern/chruby/#readme) is needed in order to select the current [Ruby](http://www.ruby-lang.org) version.
+
+[chgo-plugin-zsh](https://github.com/sbfaulkner/chgo-plugin-zsh/#readme) is needed in order to select the current [Go](https://golang.org) version.
