@@ -6,6 +6,7 @@ up:
     - ruby-install
     - chruby
   - ruby: 2.7.2
+  - bundler
   - go: 1.14
 
 commands:

@@ -145,6 +145,12 @@ function _dev::up {
   done
 }
 
+# bundle
+function _dev::up::bundler {
+  _dev_print "🧳 bundle"
+  bundle
+}
+
 # brew install
 function _dev::up::homebrew {
   (( $# > 0 )) || {
