@@ -90,8 +90,9 @@ function _dev::open {
 Usage: dev open <target>
 
 Targets:
-  gh    Open the repo on GitHub
-  pr    Open a PR on GitHub
+  gh      Open the repo on GitHub
+  issues  Open the repo issues on GitHub
+  pr      Open a PR on GitHub
 EOF
     return 1
   }
@@ -100,8 +101,11 @@ EOF
   shift
 
   case "${target}" in
-    gh)
+    gh|github)
       gh repo view --web
+      ;;
+    issue|issues)
+      gh issue list --web
       ;;
     pr)
       gh pr create --web
