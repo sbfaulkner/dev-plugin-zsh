@@ -107,7 +107,7 @@ EOF
       gh pr create --web
       ;;
     *)
-      _dev_print_error "Unable to open unknown target: ${target}"
+      _dev_print_error "unknown target: ${target}"
       return 1
       ;;
   esac
@@ -120,7 +120,7 @@ function _dev::up {
     eval "${_dev_dependencies[${d}]}"
 
     (( $+functions[_dev::up::${d}] )) || {
-      _dev_print_warning "Ignoring unsupported dependency: ${d}"
+      _dev_print_warning "unsupported dependency: ${d}"
       continue
     }
 
@@ -138,7 +138,7 @@ function _dev::up {
         "_dev::up::${d}"
         ;;
       *)
-        _dev_print_error "Unexpected type for value: ${(t)_dev_up_value}"
+        _dev_print_error "unexpected type for value: ${(t)_dev_up_value}"
         return 1
         ;;
     esac
@@ -148,12 +148,12 @@ function _dev::up {
 # brew install
 function _dev::up::homebrew {
   (( $# > 0 )) || {
-    _dev_print_warning "No packages specified for homebrew"
+    _dev_print_warning "no packages specified for homebrew"
     return 0
   }
 
   [[ "$1" == "association" ]] && {
-    _dev_print_error "Unexpected association parameter for homebrew"
+    _dev_print_error "unexpected association parameter for homebrew"
     return 2
   }
 
@@ -285,74 +285,9 @@ function _dev_load {
 }
 
 function _dev_loader {
-  ruby -ryaml -rshellwords -rjson - "${_dev_root}" <<'LOADER'
-root = ARGV.first
-yaml = YAML.load_file(File.join(root, "/dev.yml")) || {}
-name = yaml.fetch("name", File.dirname(root))
-up = yaml.fetch("up", [])
-commands = yaml.fetch("commands", {})
-puts "_dev_name=#{Shellwords.escape(name)}"
-puts "_dev_up=("
-up.each do |dependency|
-  case dependency
-  when Hash
-    puts %(  #{dependency.keys.first})
-  when Array
-    puts %(  #{dependency.first})
-  else
-    puts %(  #{dependency})
-  end
-end
-puts ")"
-puts "_dev_dependencies=("
-up.each do |dependency|
-  case dependency
-  when Hash
-    key, value = dependency.first
-    assignment = case value
-    when Hash
-      hash = value.map { |k,v| "[#{k}]=#{Shellwords.escape(v)}" }.join(' ')
-      "unset _dev_up_value; local -A _dev_up_value=( #{hash} )"
-    when Array
-      array = value.map { |v| Shellwords.escape(v) }.join(' ')
-      "unset _dev_up_value; local -a _dev_up_value=( #{array} )"
-    else
-      string = Shellwords.escape(value.to_s)
-      "unset _dev_up_value; local _dev_up_value=#{string}"
-    end
-    puts %(  [#{key}]=#{Shellwords.escape(assignment)})
-  when Array
-    key, value = dependency
-    assignment = case value
-    when Hash
-      hash = value.map { |k,v| "[#{k}]=#{Shellwords.escape(v)}" }.join(' ')
-      "unset _dev_up_value; local -A _dev_up_value=( #{hash} )"
-    when Array
-      array = value.map { |v| Shellwords.escape(v) }.join(' ')
-      "unset _dev_up_value; local -a _dev_up_value=( #{array} )"
-    else
-      string = Shellwords.escape(value.to_s)
-      "unset _dev_up_value; local _dev_up_value=#{string}"
-    end
-    puts %(  [#{key}]=#{Shellwords.escape(assignment)})
-  else
-    puts %(  [#{dependency}]="unset _dev_up_value")
-  end
-end
-puts ")"
-puts "_dev_commands=("
-commands.each do |name, script|
-  script = script["run"] if script.is_a?(Hash)
-  if script.nil?
-    warn "missing command: #{name}"
-    next
-  end
-  script = %(#{script} "$@") if script.lines.size == 1 && !script.include?('$@') && !script.include?('$*')
+  lib="$(dirname "$functions_source[$funcstack[1]]")/lib"
 
-  puts %(  [#{name}]=#{Shellwords.escape(script)})
-end
-puts ")"
-LOADER
+  ruby "${lib}/loader.rb" "${_dev_root}/dev.yml"
 }
 
 # determine mtime of source for dev command
