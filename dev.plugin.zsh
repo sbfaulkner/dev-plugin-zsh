@@ -292,7 +292,6 @@ function _dev_load {
     typeset -ag _dev_up
     typeset -Ag _dev_commands _dev_dependencies
     eval "$(_dev_loader)"
-    _dev_print "💻 $_dev_name"
   }
   _dev_loaded_at=$(_dev_yml_mtime)
 }
