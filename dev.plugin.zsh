@@ -119,6 +119,8 @@ EOF
 
 # install and start dependencies
 function _dev::up {
+  _dev_require_project || return
+
   for d in ${_dev_up}
   do
     eval "${_dev_dependencies[${d}]}"
@@ -339,6 +341,14 @@ function _dev_print_warning {
 function _dev_reload {
   [[ "$(_dev_path)" == "${_dev_root}" && $(_dev_yml_mtime) -eq ${_dev_loaded_at} ]] || {
     _dev_load
+  }
+}
+
+# require project
+function _dev_require_project {
+  [[ -n "${_dev_root}" ]] || {
+    _dev_print "not a project (dev.yml not found)"
+    return 1
   }
 }
 
