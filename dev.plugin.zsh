@@ -284,6 +284,7 @@ function _dev_gh_auth {
 
 # load current dev.yml
 function _dev_load {
+  unset _dev_name _dev_up _dev_commands _dev_dependencies
   _dev_root=$(_dev_path) && {
     typeset -g _dev_name
     typeset -ag _dev_up
