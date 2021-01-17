@@ -11,6 +11,7 @@ SPACESHIP_DEV_PREFIX="${SPACESHIP_DEV_PREFIX="$SPACESHIP_PROMPT_DEFAULT_PREFIX"}
 SPACESHIP_DEV_SUFFIX="${SPACESHIP_DEV_SUFFIX="$SPACESHIP_PROMPT_DEFAULT_SUFFIX"}"
 SPACESHIP_DEV_SYMBOL="${SPACESHIP_DEV_SYMBOL="💻 "}"
 SPACESHIP_DEV_COLOR="${SPACESHIP_DEV_COLOR="blue"}"
+SPACESHIP_DEV_COMMAND_COLOR="${SPACESHIP_DEV_COMMAND_COLOR="white"}"
 
 # ------------------------------------------------------------------------------
 # Section
@@ -31,15 +32,20 @@ spaceship_dev() {
   # getting replaced by global aliases
   # http://zsh.sourceforge.net/Doc/Release/Shell-Grammar.html#Aliasing
 
-  # TODO: detect if `dev up` is needed
   local 'dev_status'
 
-  dev_status=${_dev_name}
-  # if [[ $SOME_CONDITION ]]; then
-  #   dev_status=$(dev baz)
-  # else
-  #   dev_status=$(dev foo)
-  # fi
+  # detect if `dev up` is needed
+  if [[ $(_dev_mtime "${_dev_root}/dev.yml") -gt $(_dev_up_time) ]]; then
+    dev_status="dev.yml modified (run %F{$SPACESHIP_DEV_COMMAND_COLOR}dev up%F{$SPACESHIP_DEV_COLOR})"
+  elif [[ $(_dev_mtime "${_dev_root}/Gemfile") -gt $(_dev_mtime "${_dev_root}/Gemfile.lock") ]]; then
+    if (( $_dev_up[(I)bundler] > 0 )); then
+      dev_status="Gemfile modified (run %F{$SPACESHIP_DEV_COMMAND_COLOR}dev up%F{$SPACESHIP_DEV_COLOR})"
+    else
+      dev_status="Gemfile modified (run %F{$SPACESHIP_DEV_COMMAND_COLOR}bundle install%F{$SPACESHIP_DEV_COLOR})"
+    fi
+  else
+    dev_status=""
+  fi
 
   # Exit section if variable is empty
   [[ -z $dev_status ]] && return

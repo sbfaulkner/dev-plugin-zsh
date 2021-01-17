@@ -149,6 +149,8 @@ function _dev::up {
         ;;
     esac
   done
+  mkdir -p "${_dev_root}/.dev"
+  date >"${_dev_root}/.dev/mtime"
 }
 
 # bundle
@@ -293,7 +295,7 @@ function _dev_load {
     typeset -Ag _dev_commands _dev_dependencies
     eval "$(_dev_loader)"
   }
-  _dev_loaded_at=$(_dev_yml_mtime)
+  _dev_loaded_at=$(_dev_mtime "${_dev_root}/dev.yml")
 }
 
 function _dev_loader {
@@ -304,7 +306,7 @@ function _dev_loader {
 
 # determine mtime of source for dev command
 function _dev_mtime {
-  date -r "${functions_source[dev]}" +%s
+  [[ -f "$1" ]] && date -r "$1" +%s
 }
 
 # determine path of parent directory containing dev.yml
@@ -338,7 +340,7 @@ function _dev_print_warning {
 
 # reload dev.yml if changed
 function _dev_reload {
-  [[ "$(_dev_path)" == "${_dev_root}" && $(_dev_yml_mtime) -eq ${_dev_loaded_at} ]] || {
+  [[ "$(_dev_path)" == "${_dev_root}" && $(_dev_mtime "${_dev_root}/dev.yml") -eq ${_dev_loaded_at} ]] || {
     _dev_load
   }
 }
@@ -367,6 +369,18 @@ function _dev_up_value_get {
   return 1
 }
 
+# determine time of last successful dev up
+function _dev_up_time {
+  _dev_mtime "${_dev_root}/.dev/mtime"
+}
+
+# reload dev if changed
+function _dev_update {
+  [[ $(_dev_mtime "${functions_source[dev]}") -eq ${_dev_modified_at} ]] || {
+    source "${functions_source[dev]}"
+  }
+}
+
 # get or set version
 function _dev_version {
   local action=$1
@@ -388,17 +402,5 @@ function _dev_version {
   esac
 }
 
-# reload dev if changed
-function _dev_update {
-  [[ $(_dev_mtime) -eq ${_dev_modified_at} ]] || {
-    source "${functions_source[dev]}"
-  }
-}
-
-# determine mtime of current dev.yml
-function _dev_yml_mtime {
-  date -r "${_dev_root}/dev.yml" +%s 2>/dev/null
-}
-
-_dev_modified_at=$(_dev_mtime)
+_dev_modified_at=$(_dev_mtime "${functions_source[dev]}")
 _dev_load
