@@ -156,7 +156,7 @@ function _dev::up {
 # bundle
 function _dev::up::bundler {
   _dev_print "🧳 bundle"
-  bundle
+  bundle check || bundle install
 }
 
 # brew install
