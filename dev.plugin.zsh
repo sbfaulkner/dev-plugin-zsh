@@ -121,42 +121,108 @@ EOF
 function _dev::up {
   _dev_require_project || return
 
-  for d in ${_dev_up}
-  do
-    eval "${_dev_dependencies[${d}]}"
+  (
+    cd "${_dev_root}" || return
 
-    (( $+functions[_dev::up::${d}] )) || {
-      _dev_print_warning "unsupported dependency: ${d}"
-      continue
-    }
+    for i in {1..${#_dev_up}}
+    do
+      local d="${_dev_up[$i]}"
 
-    case "${(t)_dev_up_value}" in
-      association*)
-        "_dev::up::${d}" association "${(kv)_dev_up_value[@]}"
-        ;;
-      array*)
-        "_dev::up::${d}" "${_dev_up_value[@]}"
-        ;;
-      scalar*)
-        "_dev::up::${d}" "${_dev_up_value}"
-        ;;
-      "")
-        "_dev::up::${d}"
-        ;;
-      *)
-        _dev_print_error "unexpected type for value: ${(t)_dev_up_value}"
-        return 1
-        ;;
-    esac
-  done
-  mkdir -p "${_dev_root}/.dev"
-  date >"${_dev_root}/.dev/mtime"
+      eval "${_dev_up_values[$i]}"
+
+      (( $+functions[_dev::up::${d}] )) || {
+        _dev_print_warning "unsupported dependency: ${d}"
+        continue
+      }
+
+      case "${(t)_dev_up_value}" in
+        association*)
+          "_dev::up::${d}" association "${(kv)_dev_up_value[@]}"
+          ;;
+        array*)
+          "_dev::up::${d}" "${_dev_up_value[@]}"
+          ;;
+        scalar*)
+          "_dev::up::${d}" "${_dev_up_value}"
+          ;;
+        "")
+          "_dev::up::${d}"
+          ;;
+        *)
+          _dev_print_error "unexpected type for value: ${(t)_dev_up_value}"
+          return 1
+          ;;
+      esac
+    done
+    mkdir -p "${_dev_root}/.dev"
+    date >"${_dev_root}/.dev/mtime"
+  )
 }
 
 # bundle
 function _dev::up::bundler {
   _dev_print "🧳 bundle"
   bundle check || bundle install
+}
+
+# custom provisioning step
+function _dev::up::custom {
+  local name met meet
+
+  [[ "$1" == "association" ]] || {
+    _dev_print_error "unrecognized configuration for custom step"
+    return 1
+  }
+  
+  shift
+
+  name=$(_dev_up_value_get name "$@")
+  _dev_print "⚙️  $name"
+
+  met=$(_dev_up_value_get met? "$@")
+  meet=$(_dev_up_value_get meet "$@")
+
+  sh -c "$met" || ( sh -c "$meet" && sh -c "$met" ) || _dev_print_error "met? or meet failed"
+}
+
+# install go version
+function _dev::up::go {
+  local version
+
+  if [[ "$1" == "association" ]]; then
+    shift
+    version=$(_dev_up_value_get version "$@")
+  elif (( $# > 0 )); then
+    version=$1
+  else
+    version=$(curl -s https://golang.org/VERSION?m=text | sed -e 's/^go//')
+  fi
+
+  _dev_print "🐹 $version"
+
+  mkdir -p "$HOME/.golangs/.downloads" || return
+
+  local goroot="$HOME/.golangs/go$version"
+
+  [[ -d "$goroot" && -n "$(ls -A "$goroot")" ]] && {
+    print -P "%B%F{green}>>>%f Go is already installed into ${HOME}/.golangs/go$version%b"
+    _dev_version set go ${version}
+    return 0
+  }
+
+  local tarball="go${version}.darwin-amd64.tar.gz"
+  local tarball_path="${HOME}/.golangs/.downloads/$tarball"
+  local sha256=$(curl -s https://storage.googleapis.com/golang/${tarball}.sha256)
+
+  echo "$sha256  $tarball_path" | shasum -csa 256 - 2>/dev/null || {
+    curl -o "$tarball_path" "https://storage.googleapis.com/golang/${tarball}"
+    echo "$sha256  $tarball_path" | shasum -ca 256 - || return
+  }
+
+  mkdir -p "$goroot" || return
+  tar zxf "$tarball_path" --directory "$goroot" --strip-components=1 || return
+  source "${functions_source[chgo]}"
+  _dev_version set go ${version}
 }
 
 # brew install
@@ -205,46 +271,6 @@ function _dev::up::ruby {
   _dev_version set ruby ${version}
 }
 
-# install go version
-function _dev::up::go {
-  local version
-
-  if [[ "$1" == "association" ]]; then
-    shift
-    version=$(_dev_up_value_get version "$@")
-  elif (( $# > 0 )); then
-    version=$1
-  else
-    version=$(curl -s https://golang.org/VERSION?m=text | sed -e 's/^go//')
-  fi
-
-  _dev_print "🐹 $version"
-
-  mkdir -p "$HOME/.golangs/.downloads" || return
-
-  local goroot="$HOME/.golangs/go$version"
-
-  [[ -d "$goroot" && -n "$(ls -A "$goroot")" ]] && {
-    print -P "%B%F{green}>>>%f Go is already installed into ${HOME}/.golangs/go$version%b"
-    _dev_version set go ${version}
-    return 0
-  }
-
-  local tarball="go${version}.darwin-amd64.tar.gz"
-  local tarball_path="${HOME}/.golangs/.downloads/$tarball"
-  local sha256=$(curl -s https://storage.googleapis.com/golang/${tarball}.sha256)
-
-  echo "$sha256  $tarball_path" | shasum -csa 256 - 2>/dev/null || {
-    curl -o "$tarball_path" "https://storage.googleapis.com/golang/${tarball}"
-    echo "$sha256  $tarball_path" | shasum -ca 256 - || return
-  }
-
-  mkdir -p "$goroot" || return
-  tar zxf "$tarball_path" --directory "$goroot" --strip-components=1 || return
-  source "${functions_source[chgo]}"
-  _dev_version set go ${version}
-}
-
 #
 # zsh hooks
 #
@@ -288,11 +314,11 @@ function _dev_gh_auth {
 
 # load current dev.yml
 function _dev_load {
-  unset _dev_name _dev_up _dev_commands _dev_dependencies
+  unset _dev_name _dev_up _dev_up_values _dev_commands
   _dev_root=$(_dev_path) && {
     typeset -g _dev_name
-    typeset -ag _dev_up
-    typeset -Ag _dev_commands _dev_dependencies
+    typeset -ag _dev_up _dev_up_values
+    typeset -Ag _dev_commands
     eval "$(_dev_loader)"
   }
   _dev_loaded_at=$(_dev_mtime "${_dev_root}/dev.yml")

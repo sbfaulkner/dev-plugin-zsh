@@ -22,7 +22,7 @@ class Dev
 
     put_array('_dev_up', up, &:first)
 
-    put_association('_dev_dependencies', up) { |k, v| [k, assign(v)] }
+    put_array('_dev_up_values', up) { |_, v| assign(v) }
 
     put_association('_dev_commands', commands) do |name, script|
       script = script['run'] if script.is_a?(Hash)
