@@ -137,16 +137,16 @@ function _dev::up {
 
       case "${(t)_dev_up_value}" in
         association*)
-          "_dev::up::${d}" association "${(kv)_dev_up_value[@]}"
+          "_dev::up::${d}" association "${(kv)_dev_up_value[@]}" || return
           ;;
         array*)
-          "_dev::up::${d}" "${_dev_up_value[@]}"
+          "_dev::up::${d}" "${_dev_up_value[@]}" || return
           ;;
         scalar*)
-          "_dev::up::${d}" "${_dev_up_value}"
+          "_dev::up::${d}" "${_dev_up_value}" || return
           ;;
         "")
-          "_dev::up::${d}"
+          "_dev::up::${d}" || return
           ;;
         *)
           _dev_print_error "unexpected type for value: ${(t)_dev_up_value}"
@@ -156,6 +156,7 @@ function _dev::up {
     done
     mkdir -p "${_dev_root}/.dev"
     date >"${_dev_root}/.dev/mtime"
+    _dev_print "🏁 Done."
   )
 }
 
