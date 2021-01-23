@@ -154,7 +154,10 @@ function _dev::up {
           ;;
       esac
     done
-    mkdir -p "${_dev_root}/.dev"
+    [[ -f "${dev_root}/.gitignore" ]] || {
+      mkdir -p "${_dev_root}/.dev"
+      echo '*' >"${_dev_root}/.dev/.gitignore"
+    }
     date >"${_dev_root}/.dev/mtime"
     _dev_print "🏁 Done."
   )
