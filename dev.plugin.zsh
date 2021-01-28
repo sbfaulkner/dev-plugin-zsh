@@ -249,14 +249,18 @@ function _dev::up::homebrew {
 # nvm install
 function _dev::up::node {
   local version
+  local -a packages
 
   if [[ "$1" == "association" ]]; then
     shift
     version=$(_dev_up_value_get version "$@")
+    packages=$(_dev_up_value_get packages "$@")
   elif (( $# > 0 )); then
     version=$1
+    packages=( "${_dev_root}" )
   else
     version=stable
+    packages=( "${_dev_root}" )
   fi
 
   _dev_print "%F{green}⬢%f node $version"
