@@ -5,9 +5,9 @@ up:
     - shellcheck
     - ruby-install
     - chruby
+    - nvm
   - ruby: 2.7.2
   - bundler
-  - go: 1.14
 
 commands:
   lint: shellcheck -o all -s bash *.zsh

@@ -202,7 +202,7 @@ function _dev::up::go {
     version=$(curl -s https://golang.org/VERSION?m=text | sed -e 's/^go//')
   fi
 
-  _dev_print "🐹 $version"
+  _dev_print "🐹 go $version"
 
   mkdir -p "$HOME/.golangs/.downloads" || return
 
@@ -246,6 +246,30 @@ function _dev::up::homebrew {
   brew install "$@"
 }
 
+# nvm install
+function _dev::up::node {
+  local version
+
+  if [[ "$1" == "association" ]]; then
+    shift
+    version=$(_dev_up_value_get version "$@")
+  elif (( $# > 0 )); then
+    version=$1
+  else
+    version=stable
+  fi
+
+  _dev_print "%F{green}⬢%f node $version"
+  nvm install ${version} || return
+
+  _dev_version set node ${version}
+
+  _dev_print "🧶 yarn"
+  npm install --global yarn || return
+  [[ -f "${_dev_root}/package.json" ]] || npm init -y >/dev/null || return
+  yarn install --silent
+}
+
 # ruby-install
 function _dev::up::ruby {
   local version
@@ -259,15 +283,15 @@ function _dev::up::ruby {
     version=stable
   fi
 
-  _dev_print "💎 $version"
+  _dev_print "💎 ruby $version"
 
   case "${version}" in
   stable)
-    ruby-install ruby --no-reinstall || return
+    ruby-install ruby --no-reinstall --cleanup || return
     version=$(chruby | tail -n 1 | sed -e 's/^.*ruby-//')
     ;;
   *)
-    ruby-install ruby --no-reinstall ${version} || return
+    ruby-install ruby --no-reinstall --cleanup ${version} || return
     ;;
   esac
 
@@ -292,8 +316,10 @@ function _dev_chpwd() {
 add-zsh-hook precmd detect_versions
 function detect_versions {
   local version
-  [[ -n ${version::=$(_dev_version get ruby)} ]] && chruby "$version"
+
   [[ -n ${version::=$(_dev_version get go)} ]] && chgo "$version"
+  [[ -n ${version::=$(_dev_version get node)} ]] && nvm use --silent "$version"
+  [[ -n ${version::=$(_dev_version get ruby)} ]] && chruby "$version"
 }
 
 #
