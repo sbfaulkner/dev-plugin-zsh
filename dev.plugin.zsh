@@ -17,11 +17,8 @@ function _dev {
   shift
 
   (( $+_dev_commands[${command}] )) && {
-    (
-      cd "${_dev_root}" || return
-      sh -c "${_dev_commands[${command}]}" "${command}" "$@"
-    )
-    return $?
+    _dev_exec "${command}" "$@"
+    return
   }
 
   (( $+functions[_dev::${command}] )) || {
@@ -115,6 +112,22 @@ EOF
       return 1
       ;;
   esac
+}
+
+# run
+function _dev::run {
+  (( $+_dev_commands[build] && $+_dev_commands[run-built] )) && {
+    _dev_exec build && _dev_exec run-built
+    return
+  }
+
+  (( $+_dev_commands[server] )) && {
+    _dev_exec server
+    return
+  }
+
+  _dev_print_error "project must define either 'build' and 'run-built', or 'server'"
+  return 1
 }
 
 # install and start dependencies
@@ -329,6 +342,16 @@ function detect_versions {
 #
 # helper/utility functions
 #
+
+function _dev_exec {
+  command=$1
+  shift
+
+  (
+    cd "${_dev_root}" || return
+    sh -c "${_dev_commands[${command}]}" "${command}" "$@"
+  )
+}
 
 # github cli authentication
 function _dev_gh_auth {
