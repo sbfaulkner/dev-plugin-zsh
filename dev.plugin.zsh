@@ -80,6 +80,77 @@ function _dev::clone {
   cd "${dir}" || return
 }
 
+# init a new application
+function _dev::init {
+  [[ -f "${_dev_root}/dev.yml" ]] && {
+    _dev_print_error "can't reinitialize project: dev.yml already exists"
+    return 1
+  }
+
+  project="Create a new project with a dev.yml"
+  dev_yml="Add dev.yml to the current project"
+
+  _dev_choose action "What do you want to do?" "$project" "$dev_yml"
+
+  case "$action" in
+    "$project")
+      _dev::init::project
+      ;;
+    "$dev_yml")
+      _dev::init::dev_yml
+      ;;
+  esac
+}
+
+function _dev::init::project {
+  rails="Rails"
+  react="React"
+
+  _dev_choose project_type "What kind of project would you like to create?" "$rails" "$react"
+  _dev_prompt project_name "What should the name of the project be? "
+
+  case "$project_type" in
+    "$rails")
+      rails new ${project_name}
+      cd ${project_name}
+      ;;
+    "$react")
+      npx create-react-app ${project_name}
+      cd ${project_name}
+      ;;
+  esac
+
+  _dev_print "✍️ ${project_type} project generated"
+}
+
+function _dev::init::dev_yml {
+  cat >dev.yml <<EOF
+name: $(basename $(pwd))
+
+EOF
+
+  [[ -f Gemfile ]] && {
+    grep -q "up:" dev.yml || echo "up:" >>dev.yml
+    ruby_version=$(ruby -e 'puts RUBY_VERSION' 2>/dev/null)
+    cat >>dev.yml <<EOF
+  - ruby:
+      version: ${ruby_version:-2.7.2}
+  - bundler
+EOF
+  }
+
+  [[ -f package.json ]] && {
+    grep -q "up:" dev.yml || echo "up:" >>dev.yml
+    node_version=$(nvm version 2>/dev/null)
+    cat >>dev.yml <<EOF
+  - node:
+      version: ${node_version:-v14.16.0}
+EOF
+  }
+
+  _dev_print "✍️ dev.yml generated"
+}
+
 # open a url
 function _dev::open {
   (( $# > 0 )) || {
@@ -190,7 +261,7 @@ function _dev::up::custom {
     _dev_print_error "unrecognized configuration for custom step"
     return 1
   }
-  
+
   shift
 
   name=$(_dev_up_value_get name "$@")
@@ -199,7 +270,17 @@ function _dev::up::custom {
   met=$(_dev_up_value_get met? "$@")
   meet=$(_dev_up_value_get meet "$@")
 
-  sh -c "$met" || ( sh -c "$meet" && sh -c "$met" ) || _dev_print_error "met? or meet failed"
+  sh -c "$met" && return
+  sh -c "$meet" && sh -c "$met" && return
+
+  local _status=$?
+  _dev_print_error "met? or meet failed for $name"
+  return $_status
+}
+
+# start docker
+function _dev::up::docker {
+  docker ps -q >/dev/null 2>&1 || open -g -a Docker.app
 }
 
 # install go version
@@ -343,6 +424,27 @@ function detect_versions {
 # helper/utility functions
 #
 
+function _dev_choose {
+  variable=$1
+  shift
+
+  echo $1
+  shift
+
+  for i in {1..$#@}
+  do
+    echo "${i}. ${@[$i]}"
+  done
+
+  while _dev_prompt choice "choose one: "
+  do
+    [[ ${choice} =~ "^[0-9]+$" ]] || continue
+    (( ${choice} >= 1 && ${choice} <= $#@ )) && break
+  done
+
+  eval "typeset -g $variable\"=${@[$choice]}\""
+}
+
 function _dev_exec {
   command=$1
   shift
@@ -351,6 +453,11 @@ function _dev_exec {
     cd "${_dev_root}" || return
     sh -c "${_dev_commands[${command}]}" "${command}" "$@"
   )
+}
+
+function _dev_prompt {
+  echo -n "$2"
+  read $1
 }
 
 # github cli authentication
