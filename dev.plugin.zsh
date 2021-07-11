@@ -193,7 +193,7 @@ function _dev::run {
   }
 
   (( $+_dev_commands[server] )) && {
-    _dev_exec server
+    _dev_exec server "$@"
     return
   }
 
