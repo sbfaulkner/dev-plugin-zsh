@@ -188,7 +188,7 @@ EOF
 # run
 function _dev::run {
   (( $+_dev_commands[build] && $+_dev_commands[run-built] )) && {
-    _dev_exec build && _dev_exec run-built
+    _dev_exec build && _dev_exec run-built "$@"
     return
   }
 
