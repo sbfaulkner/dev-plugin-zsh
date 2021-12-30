@@ -450,6 +450,7 @@ function _dev_exec {
   shift
 
   (
+    export USER_PWD=$(pwd)
     cd "${_dev_root}" || return
     sh -c "${_dev_commands[${command}]}" "${command}" "$@"
   )
